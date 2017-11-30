@@ -1,5 +1,5 @@
 CC=g++
-LDFLAGS= -lvl6180_pi -L /usr/local/lib
+LDFLAGS= -lvl6180_pi -L /usr/local/lib -lwiringPi
 
 all:omnitest
 
