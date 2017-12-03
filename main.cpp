@@ -58,10 +58,6 @@ int main()
     vl6180 handle = vl6180_initialise(1, defaultADDR);
     std::cout << "debug : handle : " << handle << '\n';
     vl6180_change_addr(handle, 0x27);
-    //handle = vl6180_initialise(1, 0x27);
-    
-    //reconfig handle to point to new address
-    ioctl(handle, I2C_SLAVE, 0x27);
 
     std::cout << "debug : handle : " << handle << '\n';
     auto Ydst = handle;
