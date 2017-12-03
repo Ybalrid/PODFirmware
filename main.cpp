@@ -3,8 +3,7 @@
 #include <vl6180_pi/vl6180_pi.h>
 #include <wiringPi.h>
 #include <iostream>
-#include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
+
 using std::cout;
 
 /*
