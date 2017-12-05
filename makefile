@@ -1,10 +1,12 @@
 CC=g++
 LDFLAGS= -lvl6180_pi -L /usr/local/lib
+CFLAGS= -g -Wall -Wpedantic
+IFLAGS= -Iinclude
 
 all:omnitest
 
-omnitest:main.cpp
-	$(CC) main.cpp -o omnitest $(LDFLAGS)
+omnitest: src/main.cpp
+	$(CC) $(CFLAGS) $(IFLAGS) src/main.cpp -o omnitest $(LDFLAGS)
 
 .PHONY: clean
 clean:
