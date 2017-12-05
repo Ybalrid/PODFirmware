@@ -3,6 +3,8 @@
 #include <vl6180_pi/vl6180_pi.h>
 #include <iostream>
 
+#include "sensor.hpp"
+
 using std::cout;
 using std::this_thread::sleep_for;
 using std::chrono::milliseconds;

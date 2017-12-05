@@ -5,7 +5,7 @@ IFLAGS= -Iinclude
 
 all:omnitest
 
-omnitest: src/main.cpp
+omnitest: src/main.cpp include/sensor.hpp
 	$(CC) $(CFLAGS) $(IFLAGS) src/main.cpp -o omnitest $(LDFLAGS)
 
 .PHONY: clean
