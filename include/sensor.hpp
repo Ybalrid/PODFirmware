@@ -75,7 +75,7 @@ class distanceSensor : public sensor
 	public:
 		distanceSensor(const std::string& name) : sensor(name)
 		{
-			handle = vl6180_initialise(1, VL6180_DEFAULT_ADDR);
+			handle = vl6180_initialise_address(1, VL6180_DEFAULT_ADDR);
 		}
 
 		void changeAddress(int address)
