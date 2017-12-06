@@ -50,7 +50,7 @@ class outputGPIO
 		const int pin;
 		const std::string echo = "echo ";
 		const std::string redirectToNull = " 2> /dev/null";
-		const std::string gpioPath = " /sys/class/gpio/";
+		const std::string gpioPath = " > /sys/class/gpio/";
 		std::string writeHighCMD;
 		std::string writeLowCMD;
 };
@@ -81,7 +81,7 @@ class distanceSensor : public sensor
 		void changeAddress(int address)
 		{
 			std::cout << "changing address of distance sensor " << sensorName <<
-				" to 0x" << std::hex << address; 
+				" to 0x" << std::hex << address << std::dec << '\n'; 
 			vl6180_change_addr(handle, address);
 		}
 
@@ -100,6 +100,17 @@ class distanceSensor : public sensor
 		int distance;
 };
 
+struct vector2
+{
+    vector2(int a, int b) : x(a), y(b) {}
+    int x, y;
+};
+
+std::ostream& operator<< (std::ostream& out, const vector2& vect)
+{
+    out << "vector2(" << vect.x << ", " << vect.y << ")";
+    return out;
+}
 
 class sensorArray
 {
@@ -129,6 +140,14 @@ class sensorArray
 		{
 			return sensors[index].get();
 		}
+
+        vector2 getDistanceReadout()
+        {
+            return {
+                static_cast<distanceSensor*>(get(0))->getDistance(),
+                static_cast<distanceSensor*>(get(1))->getDistance()
+            };
+        }
 
 	private:
 		std::vector<std::unique_ptr<sensor>> sensors;
