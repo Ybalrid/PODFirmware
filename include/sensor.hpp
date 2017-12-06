@@ -8,6 +8,8 @@
 
 #include <vl6180_pi/vl6180_pi.h>
 
+
+//TODO use the proper filesystem interface to use the GPIO
 class outputGPIO
 {
 	public:
