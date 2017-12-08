@@ -1,5 +1,5 @@
 CC=g++
-LDFLAGS= -lvl6180_pi -L /usr/local/lib
+LDFLAGS= -lvl6180_pi -lmma8451_pi -L /usr/local/lib
 CFLAGS= -g -Wall -Wpedantic
 IFLAGS= -Iinclude
 
