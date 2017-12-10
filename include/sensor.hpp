@@ -7,7 +7,10 @@
 #include <vector>
 
 #include <vl6180_pi/vl6180_pi.h>
+#include <mma8451_pi/mma8451_pi.h>
 
+#include <thread>
+#include <chrono>
 
 //TODO use the proper filesystem interface to use the GPIO
 class outputGPIO
@@ -102,6 +105,29 @@ class distanceSensor : public sensor
 		int distance;
 };
 
+class accelerationSensor : public sensor
+{
+    public:
+        accelerationSensor(const std::string& name) : sensor(name)
+        {
+            handle = mma8451_initialise(1, MMA8451_PULLDOWN_ADDR);
+        }
+
+        void update() override
+        {
+            mma8451_get_acceleration(&handle, &acceleration);
+        }
+
+        mma8451_vector3 getAcceleration()
+        {
+            return acceleration;
+        }
+    private:
+        mma8451 handle;
+        mma8451_vector3 acceleration;
+
+};
+
 struct vector2
 {
     vector2(int a, int b) : x(a), y(b) {}
@@ -120,14 +146,17 @@ class sensorArray
 		sensorArray() : 
 			xEnable(4)
 		{
+            auto accelerometer = std::make_unique<accelerationSensor>("accelerometer");
+
 			xEnable.low();
 			auto ySensor = std::make_unique<distanceSensor>("Ydist");
 			ySensor->changeAddress(0x27);
 			xEnable.high();
 			auto xSensor = std::make_unique<distanceSensor>("Xdist");
-
-			sensors.push_back(std::move(xSensor));
+ 			
+            sensors.push_back(std::move(xSensor));
 			sensors.push_back(std::move(ySensor));
+            sensors.push_back(std::move(accelerometer));
 		}
 
 		void updateAll()
@@ -135,6 +164,7 @@ class sensorArray
 			for(auto& sensor : sensors)
 			{
 				sensor->update();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 
@@ -149,6 +179,11 @@ class sensorArray
                 static_cast<distanceSensor*>(get(0))->getDistance(),
                 static_cast<distanceSensor*>(get(1))->getDistance()
             };
+        }
+
+        mma8451_vector3 getAccelerationReadout()
+        {
+            return static_cast<accelerationSensor*>(get(2))->getAcceleration();
         }
 
 	private:
