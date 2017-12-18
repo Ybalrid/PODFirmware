@@ -71,6 +71,10 @@ class sensor
 
 		virtual void update() = 0;
 
+        virtual void asyncUpdateStart(){};
+        virtual bool asyncUpdateAvailable(){return true;};
+        virtual void readResultFromSensor(){};
+
 	protected:
 		const std::string sensorName;
 };
@@ -92,8 +96,35 @@ class distanceSensor : public sensor
 
 		void update() override
 		{
-			distance = get_distance(handle);
+            asyncUpdateStart();
+            counter = 0;
+            while(!asyncUpdateAvailable())
+            {
+                if(counter++ > 100)
+                {
+                    std::cerr << "Distance updat for sensor " << sensorName << " tiemouted\n";
+                    break;
+                }
+            }
+
+            readResultFromSensor();
 		}
+
+        void asyncUpdateStart() override
+        {
+            vl6180_start_range(handle);
+        }
+
+        bool asyncUpdateAvailable() override
+        {
+            return vl6180_is_range_available(handle);
+        }
+
+        void readResultFromSensor() override
+        {
+            distance = vl6180_read_distance_result(handle);
+        }
+            
 
 		int getDistance() const
 		{
@@ -103,6 +134,7 @@ class distanceSensor : public sensor
 	private:
 		vl6180 handle;
 		int distance;
+        char counter;
 };
 
 class accelerationSensor : public sensor
@@ -115,12 +147,18 @@ class accelerationSensor : public sensor
 
         void update() override
         {
-            mma8451_get_acceleration(&handle, &acceleration);
+            //this sensor get data instantaneously
+            readResultFromSensor();
         }
 
-        mma8451_vector3 getAcceleration()
+        mma8451_vector3 getAcceleration() const
         {
             return acceleration;
+        }
+
+        void readResultFromSensor() override
+        {
+            mma8451_get_acceleration(&handle, &acceleration);
         }
     private:
         mma8451 handle;
@@ -161,11 +199,30 @@ class sensorArray
 
 		void updateAll()
 		{
+            //Start reading for every sensors
 			for(auto& sensor : sensors)
-			{
-				sensor->update();
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
+                sensor->asyncUpdateStart();
+
+            //Wait for all data to be available
+            bool waiting;
+            do
+            {
+                waiting = false;
+                for(auto& sensor : sensors)
+                {
+                    if(!sensor->asyncUpdateAvailable())
+                    {
+                        waiting = true; 
+                        break;
+                    }
+                }
+            }
+            while(waiting);
+            
+            //record state of every sensors
+            for(auto& sensor : sensors)
+                sensor->readResultFromSensor();
+
 		}
 
 		sensor* get(size_t index)
