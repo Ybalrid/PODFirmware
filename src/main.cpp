@@ -23,10 +23,17 @@ int main()
         return -2;
     }
 
+    TTF_Init(); //TODO check error;
+
+
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
     auto screenTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 1024,768);
     SDL_SetRenderDrawColor(renderer, 255,255,255,255); //fill white
 
+    auto font = TTF_OpenFont("DejaVuSansMono.ttf", 12);
+    SDL_Color blackColor{0,0,0,255};
+    auto Xsurface = TTF_RenderText_Solid(font, "+", blackColor);
+    auto Xtexture = SDL_CreateTextureFromSurface(renderer, Xsurface);
     sensorArray sensors;
     
     auto last = std::chrono::system_clock::now();
@@ -34,6 +41,14 @@ int main()
 
     auto running(true);
     SDL_Event e;
+
+    SDL_Rect destination
+    {
+        200,200,50,50
+    };
+    
+    auto distance = sensors.getDistanceReadout();
+    auto zero = distance;
     while(running)
     {
         sensors.updateAll();
@@ -50,12 +65,23 @@ int main()
             switch(e.type)
             {
                 case SDL_QUIT: running = false; break;
+                case SDL_KEYUP:
+                {
+                    switch(e.key.keysym.sym)
+                    {
+                        //poor man's calibration
+                        case SDLK_SPACE:
+                            zero = sensors.getDistanceReadout();
+                        default:break;
+                    }
+                }
                 default:break;
             }
         }
         //Render to the texture
         SDL_SetRenderTarget(renderer, screenTexture);
         SDL_RenderClear(renderer); //Clear
+        SDL_RenderCopy(renderer, Xtexture, nullptr, &destination);
 
         //Draw stuff here!!!
 
@@ -64,7 +90,7 @@ int main()
         SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
-    
+    TTF_CloseFont(font); 
     SDL_DestroyWindow(window);
     SDL_DestroyTexture(screenTexture);
     SDL_DestroyRenderer(renderer);

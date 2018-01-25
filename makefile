@@ -1,5 +1,5 @@
 CC=g++
-LDFLAGS= -lvl6180_pi -lmma8451_pi -L /usr/local/lib `sdl2-config --libs` 
+LDFLAGS= -lvl6180_pi -lmma8451_pi -L /usr/local/lib `sdl2-config --libs` -lSDL2_ttf
 CFLAGS= -g -Wall -Wpedantic `sdl2-config --cflags`
 IFLAGS= -Iinclude
 
