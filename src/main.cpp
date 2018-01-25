@@ -25,7 +25,7 @@ int main()
 
     auto renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
     auto screenTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 1024,768);
-
+    SDL_SetRenderDrawColor(renderer, 255,255,255,255); //fill white
 
     sensorArray sensors;
     
@@ -53,13 +53,21 @@ int main()
                 default:break;
             }
         }
+        //Render to the texture
+        SDL_SetRenderTarget(renderer, screenTexture);
+        SDL_RenderClear(renderer); //Clear
 
-        SDL_RenderClear(renderer);
+        //Draw stuff here!!!
+
+        //Render the texture to the screen
+        SDL_SetRenderTarget(renderer, nullptr);
         SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
     
     SDL_DestroyWindow(window);
+    SDL_DestroyTexture(screenTexture);
+    SDL_DestroyRenderer(renderer);
     SDL_Quit();
 
 }
