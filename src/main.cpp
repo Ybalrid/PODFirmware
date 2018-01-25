@@ -1,5 +1,7 @@
 #include <chrono>
 #include <iostream>
+#include <SDL.h>
+#include <SDL_ttf.h>
 
 #include "sensor.hpp"
 
