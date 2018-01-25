@@ -55,7 +55,7 @@ int main()
         }
 
         SDL_RenderClear(renderer);
-        //SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
+        SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
     
