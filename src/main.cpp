@@ -32,8 +32,11 @@ int main()
 
     auto font = TTF_OpenFont("DejaVuSansMono.ttf", 12);
     SDL_Color blackColor{0,0,0,255};
+    SDL_Color redColor{255,0,0,255};
     auto Xsurface = TTF_RenderText_Solid(font, "+", blackColor);
     auto Xtexture = SDL_CreateTextureFromSurface(renderer, Xsurface);
+    auto Asurface = TTF_RenderText_Solid(font, "+", redColor);
+    auto Atexture = SDL_CreateTextureFromSurface(renderer, Asurface);
     sensorArray sensors;
     
     auto last = std::chrono::system_clock::now();
@@ -46,20 +49,27 @@ int main()
     {
         200,200,50,50
     };
+
+    SDL_Rect acceleration = destination;
     
     auto distance = sensors.getDistanceReadout();
     auto zero = distance;
+
+    int scaler = 10;
+
+    auto acc = sensors.getAccelerationReadout();
+
     while(running)
     {
         sensors.updateAll();
-        std::cout << sensors.getDistanceReadout() << '\n';
         std::cout << sensors.getAccelerationReadout() << '\n';
 
         last = now;
         now = std::chrono::system_clock::now();
 
         std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() << " ms\n";
-
+        distance = sensors.getDistanceReadout();
+        acc = sensors.getAccelerationReadout();
         while(SDL_PollEvent(&e))
         {
             switch(e.type)
@@ -81,10 +91,19 @@ int main()
         //Render to the texture
         SDL_SetRenderTarget(renderer, screenTexture);
         SDL_RenderClear(renderer); //Clear
-        SDL_RenderCopy(renderer, Xtexture, nullptr, &destination);
+        
+        distance.x -= zero.x;
+        distance.y -= zero.y;
+        std::cout << "DISTANCE " << distance << "\n";
 
+
+        destination.x = (1024/2) + scaler * distance.x;
+        destination.y = (768/2)  + scaler * distance.y;
+        acceleration.x = (1024/2) + 500 * scaler* acc.x;
+        acceleration.y = (768/2) + 500 * scaler * acc.y;
         //Draw stuff here!!!
-
+        SDL_RenderCopy(renderer, Xtexture, nullptr, &destination);
+        SDL_RenderCopy(renderer, Atexture, nullptr, &acceleration);
         //Render the texture to the screen
         SDL_SetRenderTarget(renderer, nullptr);
         SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
