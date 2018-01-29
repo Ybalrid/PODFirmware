@@ -1,13 +1,43 @@
 #include <chrono>
 #include <iostream>
+#include <fstream>
 #include <SDL.h>
 #include <SDL_ttf.h>
-
+#include <iomanip>
+#include <limits>
 #include "sensor.hpp"
 
 
+#include <vector>
+
+///structure to contains the data outputed by the sensors
+struct sample
+{
+    long long time;
+    int x, y;
+    float accx, accy, accz;
+};
+
+
+///Function to print that data to an output stream
+std::ostream& operator<<(std::ostream& out, const sample& s)
+{
+    out << s.time << ", " << s.x << ", " << s.y << ", "
+        << std::setprecision(std::numeric_limits<float>::digits10+1)
+        << s.accx << ", " 
+        << std::setprecision(std::numeric_limits<float>::digits10+1)
+        << s.accy << ", " 
+        << std::setprecision(std::numeric_limits<float>::digits10+1)
+        << s.accz;
+    return out;
+}
+
 int main()
 {
+    //Where to store some samples
+    std::vector<sample> samples;
+    samples.reserve(4096);
+
     if(SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         std::cout << SDL_GetError() << '\n';
@@ -38,7 +68,7 @@ int main()
     auto Asurface = TTF_RenderText_Solid(font, "+", redColor);
     auto Atexture = SDL_CreateTextureFromSurface(renderer, Asurface);
     sensorArray sensors;
-    
+
     auto last = std::chrono::system_clock::now();
     auto now = std::chrono::system_clock::now();
 
@@ -51,13 +81,17 @@ int main()
     };
 
     SDL_Rect acceleration = destination;
-    
+
     auto distance = sensors.getDistanceReadout();
     auto zero = distance;
 
     int scaler = 10;
-
     auto acc = sensors.getAccelerationReadout();
+
+    srand(time(NULL));
+
+
+    auto start = std::chrono::system_clock::now();
 
     while(running)
     {
@@ -66,6 +100,9 @@ int main()
 
         last = now;
         now = std::chrono::system_clock::now();
+
+        auto timepoint = now - start;
+
 
         std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() << " ms\n";
         distance = sensors.getDistanceReadout();
@@ -76,22 +113,22 @@ int main()
             {
                 case SDL_QUIT: running = false; break;
                 case SDL_KEYUP:
-                {
-                    switch(e.key.keysym.sym)
-                    {
-                        //poor man's calibration
-                        case SDLK_SPACE:
-                            zero = sensors.getDistanceReadout();
-                        default:break;
-                    }
-                }
+                               {
+                                   switch(e.key.keysym.sym)
+                                   {
+                                       //poor man's calibration
+                                       case SDLK_SPACE:
+                                           zero = sensors.getDistanceReadout();
+                                       default:break;
+                                   }
+                               }
                 default:break;
             }
         }
         //Render to the texture
         SDL_SetRenderTarget(renderer, screenTexture);
         SDL_RenderClear(renderer); //Clear
-        
+
         distance.x -= zero.x;
         distance.y -= zero.y;
         std::cout << "DISTANCE " << distance << "\n";
@@ -101,6 +138,7 @@ int main()
         destination.y = (768/2)  + scaler * distance.y;
         acceleration.x = (1024/2) + 500 * scaler* acc.x;
         acceleration.y = (768/2) + 500 * scaler * acc.y;
+
         //Draw stuff here!!!
         SDL_RenderCopy(renderer, Xtexture, nullptr, &destination);
         SDL_RenderCopy(renderer, Atexture, nullptr, &acceleration);
@@ -108,7 +146,36 @@ int main()
         SDL_SetRenderTarget(renderer, nullptr);
         SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
+
+        //Record to buffer
+        samples.push_back({
+                std::chrono::duration_cast<std::chrono::nanoseconds>
+                (timepoint).count(),
+                distance.x,
+                distance.y,
+                acc.x, acc.y, acc.z});
     }
+
+    //generate (bad) random filename
+    std::string filename;
+    for(int i = 0; i < 20; i++)
+    {
+        filename.push_back((char)(97 + (rand() % 26)));
+    }
+
+    filename += ".csv";
+
+    {
+        //output to file
+        auto file = std::ofstream(filename);
+
+        for(auto& s : samples)
+        {
+            file << s;
+            file << '\n';
+        }
+    }
+
     TTF_CloseFont(font); 
     SDL_DestroyWindow(window);
     SDL_DestroyTexture(screenTexture);
