@@ -82,9 +82,9 @@ class sensor
 class distanceSensor : public sensor
 {
 	public:
-		distanceSensor(const std::string& name) : sensor(name)
+		distanceSensor(const std::string& name, unsigned char addr = VL6180_DEFAULT_ADDR) : sensor(name)
 		{
-			handle = vl6180_initialise_address(1, VL6180_DEFAULT_ADDR);
+			handle = vl6180_initialise_address(1, addr);
 		}
 
 		void changeAddress(int address)
@@ -186,13 +186,13 @@ class sensorArray
 		{
             auto accelerometer = std::make_unique<accelerationSensor>("accelerometer");
 
-			xEnable.low();
+			//xEnable.low();
 			auto ySensor = std::make_unique<distanceSensor>("Ydist");
 			ySensor->changeAddress(0x27);
-			xEnable.high();
-			auto xSensor = std::make_unique<distanceSensor>("Xdist");
+			//xEnable.high();
+			//auto xSensor = std::make_unique<distanceSensor>("Xdist");
  			
-            sensors.push_back(std::move(xSensor));
+            //sensors.push_back(std::move(xSensor));
 			sensors.push_back(std::move(ySensor));
             sensors.push_back(std::move(accelerometer));
 		}
@@ -234,13 +234,15 @@ class sensorArray
         {
             return {
                 static_cast<distanceSensor*>(get(0))->getDistance(),
-                static_cast<distanceSensor*>(get(1))->getDistance()
+                //removed X static_cast<distanceSensor*>(get(1))->getDistance()
+                static_cast<distanceSensor*>(get(0))->getDistance()
             };
         }
 
         mma8451_vector3 getAccelerationReadout()
         {
-            return static_cast<accelerationSensor*>(get(2))->getAcceleration();
+            //return static_cast<accelerationSensor*>(get(2))->getAcceleration();
+            return static_cast<accelerationSensor*>(get(1))->getAcceleration();
         }
 
 	private:
