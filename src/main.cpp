@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <limits>
 #include "sensor.hpp"
-
+#include "filter.hpp"
 
 #include <vector>
 
@@ -87,11 +87,16 @@ int main()
 
     int scaler = 10;
     auto acc = sensors.getAccelerationReadout();
+    auto accZero = acc;
 
     srand(time(NULL));
 
 
     auto start = std::chrono::system_clock::now();
+    
+    filter<int, 6> xFilter, yFilter;
+    filter<float, 3> xAccFilter, zAccFilter;
+
 
     while(running)
     {
@@ -131,8 +136,18 @@ int main()
 
         distance.x -= zero.x;
         distance.y -= zero.y;
-        std::cout << "DISTANCE " << distance << "\n";
+        
+        distance.x = xFilter(distance.x);
+        distance.y = yFilter(distance.y);
 
+        acc.x -= accZero.x;
+        //acc.y -= accZero.y;
+        acc.z -= accZero.z;
+
+        acc.x = xAccFilter(acc.x);
+        acc.z = zAccFilter(acc.z);
+
+        std::cout << "DISTANCE " << distance << "\n";
 
         destination.x = (1024/2) + scaler * distance.x;
         destination.y = (768/2)  + scaler * distance.y;
