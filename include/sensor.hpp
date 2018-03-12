@@ -182,15 +182,15 @@ class sensorArray
 {
 	public:
 		sensorArray() : 
-			xEnable(4)
+			yEnable(4)
 		{
             auto accelerometer = std::make_unique<accelerationSensor>("accelerometer");
 
-			//xEnable.low();
-			auto ySensor = std::make_unique<distanceSensor>("Ydist");
-			ySensor->changeAddress(0x27);
-			//xEnable.high();
+			yEnable.low();
 			//auto xSensor = std::make_unique<distanceSensor>("Xdist");
+			//ySensor->changeAddress(0x27);
+			yEnable.high();
+			auto ySensor = std::make_unique<distanceSensor>("Ydist");
  			
             //sensors.push_back(std::move(xSensor));
 			sensors.push_back(std::move(ySensor));
@@ -247,6 +247,6 @@ class sensorArray
 
 	private:
 		std::vector<std::unique_ptr<sensor>> sensors;
-		outputGPIO xEnable;
+		outputGPIO yEnable;
 };
 
