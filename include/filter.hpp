@@ -36,11 +36,11 @@ struct filter
             buffer[0] = lerp(buffer[0], buffer[2], scale);
         }
 
-    accumulator = 0;
-    for(size_t i{0}; i < dim; ++i) 
-        accumulator += buffer[i];
+        accumulator = 0;
+        for(size_t i{0}; i < dim; ++i)
+            accumulator += buffer[i];
 
-    accumulator /= dim;
-    return accumulator;
+        accumulator /= T(dim);
+        return accumulator;
     }
 };
