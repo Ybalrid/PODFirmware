@@ -7,8 +7,10 @@
 #include <limits>
 #include "sensor.hpp"
 #include "filter.hpp"
+#include "packet_sender.hpp"
 
 #include <vector>
+#include <string>
 
 ///structure to contains the data outputed by the sensors
 struct sample
@@ -32,8 +34,13 @@ std::ostream& operator<<(std::ostream& out, const sample& s)
     return out;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+    packet_sender network_sender;
+    {
+    std::string server = argc > 1 ? argv[1] : "255.255.255.255";
+    network_sender.setServerAddress(server);
+    }
     //Where to store some samples
     std::vector<sample> samples;
     samples.reserve(4096);
@@ -133,10 +140,8 @@ int main()
         //Render to the texture
         SDL_SetRenderTarget(renderer, screenTexture);
         SDL_RenderClear(renderer); //Clear
-
         distance.x -= zero.x;
         distance.y -= zero.y;
-        
         distance.x = xFilter(distance.x);
         distance.y = yFilter(distance.y);
 
