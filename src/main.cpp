@@ -8,17 +8,19 @@
 #include "sensor.hpp"
 #include "filter.hpp"
 #include "packet_sender.hpp"
-
+#include "walk_detector.hpp"
 #include <vector>
 #include <string>
 
 ///structure to contains the data outputed by the sensors
-struct sample
+/*struct sample
 {
     long long time;
     int x, y;
     float accx, accy, accz;
-};
+};*/
+
+using sample = walk_detector::raw_data;
 
 
 ///Function to print that data to an output stream
@@ -36,6 +38,7 @@ std::ostream& operator<<(std::ostream& out, const sample& s)
 
 int main(int argc, char* argv[])
 {
+    walk_detector::analyser<128> wd;
     packet_sender network_sender;
     {
     std::string server = argc > 1 ? argv[1] : "255.255.255.255";
@@ -131,6 +134,7 @@ int main(int argc, char* argv[])
                                        //poor man's calibration
                                        case SDLK_SPACE:
                                            zero = sensors.getDistanceReadout();
+                                           accZero = acc;
                                        default:break;
                                    }
                                }
@@ -168,12 +172,19 @@ int main(int argc, char* argv[])
         SDL_RenderPresent(renderer);
 
         //Record to buffer
-        samples.push_back({
-                std::chrono::duration_cast<std::chrono::nanoseconds>
+    
+        sample s = {
+                (long long)std::chrono::duration_cast<std::chrono::nanoseconds>
                 (timepoint).count(),
                 distance.x,
                 distance.y,
-                acc.x, acc.y, acc.z});
+                acc.x, acc.y, acc.z};
+
+        samples.push_back(s);
+        wd.push_data(s);
+
+        auto walk = wd.get_estimated_walk();
+        network_sender.sendWalkVector(s.time, walk.x, walk.y);
     }
 
     //generate (bad) random filename
