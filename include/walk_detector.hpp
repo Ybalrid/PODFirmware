@@ -2,6 +2,7 @@
 
 #include <array>
 #include <algorithm>
+#include <cmath>
 
 namespace walk_detector
 {
@@ -30,9 +31,25 @@ namespace walk_detector
             size_t initial;
             void compute()
             {
+
+                auto& latest = buffer[0];
+                auto angle = atan2(latest.x, latest.y);
+
+                auto squaredLenght = (latest.x * latest.x) + (latest.y * latest.y);
+
+                //TODO calculate frequency of latest oscilations
+                
+                //if lengh > thresold (platform tilted to some angle), and freq > fthreshold
+                //  calculate vector from polat to cartesian
+                //  set estimation to that vector
+                //else
+                //  vector is null
+                //
+
+                //in the mean time, to test communication, set vector to [1, 2]
                 estimation.x = 1;
                 estimation.y = 2;
-                //Do magic here!
+
             }
 
             public:
