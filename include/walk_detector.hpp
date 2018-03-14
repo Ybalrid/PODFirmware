@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -21,6 +22,40 @@ namespace walk_detector
     struct walk_speed_vector
     {
         float x, y;
+
+        float squaredLenght()
+        {
+            return x*x+y*y;
+        }
+
+        float length()
+        {
+            return sqrt(squaredLenght());
+        }
+
+        void normalize()
+        {
+            auto l = length();
+            if(l > 0)
+            {
+                x /= l;
+                y /= l;
+            }
+        }
+
+        walk_speed_vector operator*(float s)
+        {
+            auto newVect = *this;
+            newVect.x *= s;
+            newVect.y *= s;
+            return newVect;
+        }
+
+        walk_speed_vector operator*=(float s)
+        {
+            *this = *this * s;
+            return *this;
+        }
     };
 
     template <size_t buffer_size>
@@ -29,14 +64,21 @@ namespace walk_detector
             std::array<raw_data, buffer_size> buffer;
             walk_speed_vector estimation;
             size_t initial;
+            
+            float detectionThreshold;
+
             void compute()
             {
 
                 auto& latest = buffer[0];
                 auto angle = atan2(latest.x, latest.y);
 
-                auto squaredLenght = (latest.x * latest.x) + (latest.y * latest.y);
+                walk_speed_vector vect;
+                vect.x = latest.x;
+                vect.y = latest.y;
 
+                float lsquared = vect.squaredLenght();
+                std::cerr << "squared lenght of vector = " << lsquared << '\n';
                 //TODO calculate frequency of latest oscilations
                 
                 //if lengh > thresold (platform tilted to some angle), and freq > fthreshold
@@ -46,9 +88,29 @@ namespace walk_detector
                 //  vector is null
                 //
 
-                //in the mean time, to test communication, set vector to [1, 2]
-                estimation.x = 1;
-                estimation.y = 2;
+
+                if(lsquared > detectionThreshold)
+                {
+                    std::cerr << "PLATFORM TILTED!!\n";
+
+                    const auto s = sin(angle);
+                    const auto c = cos(angle);
+
+                    static const float nx = 1, ny = 0;
+                    estimation.x = nx * c - ny * s;
+                    estimation.y = nx * s + ny * c;
+
+                    //TODO calculate some actual speed!
+                    
+                    static const float some_speed = 1.23;
+                    estimation *= some_speed;
+
+                }
+                else
+                {
+                    estimation.x = 0.F;
+                    estimation.y = 0.F;
+                }
 
             }
 
@@ -57,6 +119,7 @@ namespace walk_detector
             analyser()
             {
                 initial = 0;
+                detectionThreshold = 100;
             }
 
             walk_speed_vector get_estimated_walk()
