@@ -38,16 +38,23 @@ std::ostream& operator<<(std::ostream& out, const sample& s)
 
 int main(int argc, char* argv[])
 {
-    walk_detector::analyser<128> wd;
+    //Template parameter is the time depth of the analyser (in samples)
+    //22 samples is roughly 1/4th a second if sampling is done at 11 ms. (as it is more or less the case here)
+    walk_detector::analyser<22> wd;
+    
+    //Network config
     packet_sender network_sender;
     {
-    std::string server = argc > 1 ? argv[1] : "255.255.255.255";
-    network_sender.setServerAddress(server);
+        std::string server = argc > 1 ? argv[1] : "255.255.255.255";
+        network_sender.setServerAddress(server);
     }
+
+
     //Where to store some samples
     std::vector<sample> samples;
-    samples.reserve(4096);
+    samples.reserve(4096); //This already assign memory into the vector(making 4096 later's push_back free of memory alloc)
 
+    //Initialize the graphical debug with SDL
     if(SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         std::cout << SDL_GetError() << '\n';
@@ -106,44 +113,55 @@ int main(int argc, char* argv[])
     
     filter<int, 6> xFilter, yFilter;
     filter<float, 3> xAccFilter, zAccFilter;
-
-
+    
+    //Set to true the first time you hit spacebar
+    bool calibrated = false;
     while(running)
     {
+        //Get data from the sensor array
         sensors.updateAll();
-        std::cout << sensors.getAccelerationReadout() << '\n';
-
+        //std::cout << sensors.getAccelerationReadout() << '\n';
+        
+        //Calculate timing
         last = now;
         now = std::chrono::system_clock::now();
-
         auto timepoint = now - start;
 
 
-        std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() << " ms\n";
+        //std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() << " ms\n";
         distance = sensors.getDistanceReadout();
         acc = sensors.getAccelerationReadout();
+
+        //For every event in the quue
         while(SDL_PollEvent(&e))
         {
             switch(e.type)
             {
+                //Window closed:
                 case SDL_QUIT: running = false; break;
+                //Any keypress
                 case SDL_KEYUP:
                                {
                                    switch(e.key.keysym.sym)
                                    {
-                                       //poor man's calibration
+                                       //spacebar
                                        case SDLK_SPACE:
                                            zero = sensors.getDistanceReadout();
                                            accZero = acc;
+                                           calibrated = true;
+                                           break;
                                        default:break;
                                    }
                                }
                 default:break;
             }
         }
+        
+        
         //Render to the texture
         SDL_SetRenderTarget(renderer, screenTexture);
         SDL_RenderClear(renderer); //Clear
+        
         distance.x -= zero.x;
         distance.y -= zero.y;
         distance.x = xFilter(distance.x);
@@ -156,14 +174,14 @@ int main(int argc, char* argv[])
         acc.x = xAccFilter(acc.x);
         acc.z = zAccFilter(acc.z);
 
-        std::cout << "DISTANCE " << distance << "\n";
-
+        //std::cout << "DISTANCE " << distance << "\n";
+        //Theses scalings are done for graphics only
         destination.x = (1024/2) + scaler * distance.x;
         destination.y = (768/2)  + scaler * distance.y;
         acceleration.x = (1024/2) + 500 * scaler* acc.x;
         acceleration.y = (768/2) + 500 * scaler * acc.y;
 
-        //Draw stuff here!!!
+        //Draw stuff on the screen
         SDL_RenderCopy(renderer, Xtexture, nullptr, &destination);
         SDL_RenderCopy(renderer, Atexture, nullptr, &acceleration);
         //Render the texture to the screen
@@ -171,8 +189,10 @@ int main(int argc, char* argv[])
         SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
 
-        //Record to buffer
-    
+        //If the platform isn't calibrated, the measured data is useless
+        if(!calibrated) continue;
+   
+        //Construct a sample from raw_data
         sample s = {
                 (long long)std::chrono::duration_cast<std::chrono::nanoseconds>
                 (timepoint).count(),
@@ -180,9 +200,11 @@ int main(int argc, char* argv[])
                 distance.y,
                 acc.x, acc.y, acc.z};
 
+        //Record it for latter analysis
         samples.push_back(s);
-        wd.push_data(s);
 
+        //Push that sample into the "walk detector"
+        wd.push_data(s);
         auto walk = wd.get_estimated_walk();
         network_sender.sendWalkVector(s.time, walk.x, walk.y);
     }

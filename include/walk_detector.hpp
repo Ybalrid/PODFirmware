@@ -17,6 +17,20 @@ namespace walk_detector
         long long time;
         int x, y;
         float accx, accy, accz;
+
+        int squared_scale() const
+        {
+            if(sq_scale > 0) return sq_scale;
+            sq_scale = x*x+y*y;
+            return sq_scale;
+        }
+
+        float acc_shake_fator()
+        {
+            return std::abs(accx) + std::abs(accy) + std::abs(accz);
+        }
+        mutable int sq_scale = -1;
+
     };
 
     struct walk_speed_vector
@@ -62,6 +76,27 @@ namespace walk_detector
         class analyser 
         {
             std::array<raw_data, buffer_size> buffer;
+
+            std::tuple<int, int> get_min_max_buffer()
+            {
+                static int min, max;
+                min = buffer[0].squared_scale();
+                max = buffer[0].squared_scale();
+                for(const auto& sample : buffer)
+                {
+                    const auto scale = sample.squared_scale();
+                    if(scale < min) min = scale;
+                    if(scale > max) max = scale;
+                }
+                return std::tie(min, max);
+            }
+
+            int get_buffer_amplitude()
+            {
+                auto result = get_min_max_buffer();
+                return sqrt(std::get<1>(result)) - sqrt(std::get<0>(result));
+            }
+
             walk_speed_vector estimation;
             size_t initial;
             
@@ -78,7 +113,7 @@ namespace walk_detector
                 vect.y = latest.y;
 
                 float lsquared = vect.squaredLenght();
-                std::cerr << "squared lenght of vector = " << lsquared << '\n';
+                //std::cerr << "squared lenght of vector = " << lsquared << '\n';
                 //TODO calculate frequency of latest oscilations
                 
                 //if lengh > thresold (platform tilted to some angle), and freq > fthreshold
@@ -101,13 +136,18 @@ namespace walk_detector
                     estimation.y = nx * s + ny * c;
 
                     //TODO calculate some actual speed!
+
+                    std::cerr << "Accelerometer shake: " << latest.acc_shake_fator() << '\n';
+                    std::cerr << "Buffer amplitude: " << get_buffer_amplitude() << '\n';
                     
+
                     static const float some_speed = 1.23;
                     estimation *= some_speed;
-
+                    
                 }
                 else
                 {
+                    std::cout << "PLATFORM NOT TILTED\n";
                     estimation.x = 0.F;
                     estimation.y = 0.F;
                 }
@@ -119,7 +159,7 @@ namespace walk_detector
             analyser()
             {
                 initial = 0;
-                detectionThreshold = 100;
+                detectionThreshold = 75;
             }
 
             walk_speed_vector get_estimated_walk()

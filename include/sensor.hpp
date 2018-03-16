@@ -187,12 +187,12 @@ class sensorArray
             auto accelerometer = std::make_unique<accelerationSensor>("accelerometer");
 
 			yEnable.low();
-			//auto xSensor = std::make_unique<distanceSensor>("Xdist");
-			//ySensor->changeAddress(0x27);
+			auto xSensor = std::make_unique<distanceSensor>("Xdist");
+			xSensor->changeAddress(0x27);
 			yEnable.high();
 			auto ySensor = std::make_unique<distanceSensor>("Ydist");
  			
-            //sensors.push_back(std::move(xSensor));
+            sensors.push_back(std::move(xSensor));
 			sensors.push_back(std::move(ySensor));
             sensors.push_back(std::move(accelerometer));
 		}
@@ -234,15 +234,13 @@ class sensorArray
         {
             return {
                 static_cast<distanceSensor*>(get(0))->getDistance(),
-                //removed X static_cast<distanceSensor*>(get(1))->getDistance()
-                static_cast<distanceSensor*>(get(0))->getDistance()
+                static_cast<distanceSensor*>(get(1))->getDistance()
             };
         }
 
         mma8451_vector3 getAccelerationReadout()
         {
-            //return static_cast<accelerationSensor*>(get(2))->getAcceleration();
-            return static_cast<accelerationSensor*>(get(1))->getAcceleration();
+            return static_cast<accelerationSensor*>(get(2))->getAcceleration();
         }
 
 	private:
