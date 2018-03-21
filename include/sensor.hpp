@@ -82,9 +82,9 @@ class sensor
 class distanceSensor : public sensor
 {
 	public:
-		distanceSensor(const std::string& name) : sensor(name)
+		distanceSensor(const std::string& name, unsigned char addr = VL6180_DEFAULT_ADDR) : sensor(name)
 		{
-			handle = vl6180_initialise_address(1, VL6180_DEFAULT_ADDR);
+			handle = vl6180_initialise_address(1, addr);
 		}
 
 		void changeAddress(int address)
@@ -182,15 +182,15 @@ class sensorArray
 {
 	public:
 		sensorArray() : 
-			xEnable(4)
+			yEnable(4)
 		{
             auto accelerometer = std::make_unique<accelerationSensor>("accelerometer");
 
-			xEnable.low();
-			auto ySensor = std::make_unique<distanceSensor>("Ydist");
-			ySensor->changeAddress(0x27);
-			xEnable.high();
+			yEnable.low();
 			auto xSensor = std::make_unique<distanceSensor>("Xdist");
+			xSensor->changeAddress(0x27);
+			yEnable.high();
+			auto ySensor = std::make_unique<distanceSensor>("Ydist");
  			
             sensors.push_back(std::move(xSensor));
 			sensors.push_back(std::move(ySensor));
@@ -233,7 +233,7 @@ class sensorArray
         vector2 getDistanceReadout()
         {
             return {
-                static_cast<distanceSensor*>(get(0))->getDistance(),
+                -static_cast<distanceSensor*>(get(0))->getDistance(),
                 static_cast<distanceSensor*>(get(1))->getDistance()
             };
         }
@@ -245,6 +245,6 @@ class sensorArray
 
 	private:
 		std::vector<std::unique_ptr<sensor>> sensors;
-		outputGPIO xEnable;
+		outputGPIO yEnable;
 };
 
