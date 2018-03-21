@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 {
     //Template parameter is the time depth of the analyser (in samples)
     //22 samples is roughly 1/4th a second if sampling is done at 11 ms. (as it is more or less the case here)
-    walk_detector::analyser<22> wd;
+    walk_detector::analyser<22*4> wd;
     
     //Network config
     packet_sender network_sender;
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
         auto timepoint = now - start;
 
 
-        //std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() << " ms\n";
+        std::cout << "time difference " << std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() << " ms\n";
         distance = sensors.getDistanceReadout();
         acc = sensors.getAccelerationReadout();
 

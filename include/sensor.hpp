@@ -233,7 +233,7 @@ class sensorArray
         vector2 getDistanceReadout()
         {
             return {
-                static_cast<distanceSensor*>(get(0))->getDistance(),
+                -static_cast<distanceSensor*>(get(0))->getDistance(),
                 static_cast<distanceSensor*>(get(1))->getDistance()
             };
         }

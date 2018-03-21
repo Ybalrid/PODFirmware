@@ -97,6 +97,41 @@ namespace walk_detector
                 return sqrt(std::get<1>(result)) - sqrt(std::get<0>(result));
             }
 
+            int get_buffer_mean_distance() const
+            {
+                
+                int n = 0;
+                for(const auto& sample : buffer)
+                {
+                    n += sample.squared_scale();
+
+                }
+
+                n/=int(buffer.size());
+                return n;
+            }
+
+            int compute_freq_estimate() const
+            {
+                int zero_cross = 0;
+                const int mean = get_buffer_mean_distance();
+                bool positive = buffer[0].squared_scale() > mean ? true : false;
+                for(const auto& sample : buffer)
+                {
+                    if(positive && sample.squared_scale() < mean)
+                    {
+                        positive = false;
+                        zero_cross++;
+                    }
+                    if(!positive && sample.squared_scale() > mean)
+                    {
+                        positive = true;
+                        zero_cross++;
+                    }
+                }
+                return zero_cross;
+            }
+
             walk_speed_vector estimation;
             size_t initial;
             
@@ -137,13 +172,16 @@ namespace walk_detector
 
                     //TODO calculate some actual speed!
 
-                    std::cerr << "Accelerometer shake: " << latest.acc_shake_fator() << '\n';
-                    std::cerr << "Buffer amplitude: " << get_buffer_amplitude() << '\n';
+                    const auto accShake = latest.acc_shake_fator();
+                    const auto buffAmplitude = get_buffer_amplitude();
                     
+                    std::cout << "freq estimate = " << compute_freq_estimate() << '\n';
+                    std::cout << "accShake = " << accShake  << '\n';
+                    std::cout << "buffAmplitude = " << buffAmplitude  << '\n';
 
                     static const float some_speed = 1.23;
                     estimation *= some_speed;
-                    
+
                 }
                 else
                 {
