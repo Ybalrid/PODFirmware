@@ -148,20 +148,10 @@ namespace walk_detector
                 vect.y = latest.y;
 
                 float lsquared = vect.squaredLenght();
-                //std::cerr << "squared lenght of vector = " << lsquared << '\n';
-                //TODO calculate frequency of latest oscilations
-                
-                //if lengh > thresold (platform tilted to some angle), and freq > fthreshold
-                //  calculate vector from polat to cartesian
-                //  set estimation to that vector
-                //else
-                //  vector is null
-                //
-
 
                 if(lsquared > detectionThreshold)
                 {
-                    std::cerr << "PLATFORM TILTED!!\n";
+                    //std::cerr << "PLATFORM TILTED!!\n";
 
                     const auto s = sin(angle);
                     const auto c = cos(angle);
@@ -174,10 +164,23 @@ namespace walk_detector
 
                     const auto accShake = latest.acc_shake_fator();
                     const auto buffAmplitude = get_buffer_amplitude();
-                    
-                    std::cout << "freq estimate = " << compute_freq_estimate() << '\n';
+                    const auto freqEstimate = compute_freq_estimate();
+                    /*std::cout << "freq estimate = " << compute_freq_estimate() << '\n';
                     std::cout << "accShake = " << accShake  << '\n';
                     std::cout << "buffAmplitude = " << buffAmplitude  << '\n';
+                    */
+                    
+                    if(accShake > 0.25f)
+                        std::cout << "Accelerometer shake detected\n";
+                    else std::cout << '\n';
+
+                    if(buffAmplitude > 6)
+                        std::cout << "Buffer amplitude high detected\n";
+                    else std::cout << '\n';
+                    
+                    if(freqEstimate > 3)
+                        std::cout << "High Freq Estimate detected\n";
+                    else std::cout << '\n';
 
                     static const float some_speed = 1.23;
                     estimation *= some_speed;
@@ -197,7 +200,7 @@ namespace walk_detector
             analyser()
             {
                 initial = 0;
-                detectionThreshold = 75;
+                detectionThreshold =  60;
             }
 
             walk_speed_vector get_estimated_walk()

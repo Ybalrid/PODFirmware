@@ -1,6 +1,6 @@
 CC=g++
 LDFLAGS= -lvl6180_pi -lmma8451_pi -L /usr/local/lib `sdl2-config --libs` -lSDL2_ttf
-CFLAGS= -g -Wall -Wpedantic `sdl2-config --cflags`
+CFLAGS= -g -Wall -Wpedantic -O3 `sdl2-config --cflags`
 IFLAGS= -Iinclude
 
 all:omnitest
