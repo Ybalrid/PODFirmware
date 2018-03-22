@@ -75,6 +75,11 @@ namespace walk_detector
     template <size_t buffer_size>
         class analyser 
         {
+
+            float lastSpeedUpdate;
+            float currentSpeedUpdate;
+            float speedSmoothingValue; 
+
             std::array<raw_data, buffer_size> buffer;
 
             std::tuple<int, int> get_min_max_buffer()
