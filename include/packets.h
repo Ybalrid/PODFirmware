@@ -1,16 +1,21 @@
 #pragma once
 
+#include <stdint.h>
+
 //Important network packet types
-enum { PODAPI_HELLO,
-	   PODAPI_SEVERHERE,
-	   PODAPI_SAMPLE,
-	   PODAPI_WALK_VEC
+enum {
+	PODAPI_HELLO,
+	PODAPI_SEVERHERE,
+	PODAPI_SAMPLE,
+	PODAPI_WALK_VEC,
+	PODAPI_SERVER_ASK
 };
-typedef unsigned char POD_Byte;
-typedef int POD_Int;
+
+typedef uint8_t POD_Byte;
+typedef int32_t POD_Int;
 typedef float POD_Float;
-typedef long long POD_Time;
-typedef char POD_Char;
+typedef int64_t POD_Time;
+typedef int8_t POD_Char;
 
 #define POD_PROTOCOL_PORT 4242
 
@@ -25,7 +30,7 @@ extern "C" {
 struct POD_message
 {
 	POD_Byte packetType;
-	POD_Char text[128];
+	POD_Char text[127];
 };
 
 struct POD_ServerOk
@@ -46,6 +51,11 @@ struct POD_WalkVector
 	POD_Byte packetType;
 	POD_Time timepoint;
 	POD_Float x, y;
+};
+
+struct POD_ServerAsk
+{
+	POD_Byte packetType;
 };
 
 #pragma pack(pop)
