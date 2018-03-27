@@ -141,19 +141,23 @@ namespace walk_detector
             size_t initial;
             
             float detectionThreshold;
+            float map(float x, float in_min, float in_max, float out_min, float out_max)
+            {
+                return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+            }
 
             void compute()
             {
 
                 auto& latest = buffer[0];
-                auto angle = atan2(latest.x, latest.y);
+                auto angle = atan2(latest.y, latest.x);
 
                 walk_speed_vector vect;
                 vect.x = latest.x;
                 vect.y = latest.y;
 
                 float lsquared = vect.squaredLenght();
-
+                std::cout << lsquared << '\n';
                 if(lsquared > detectionThreshold)
                 {
                     //std::cerr << "PLATFORM TILTED!!\n";
@@ -164,7 +168,7 @@ namespace walk_detector
                     static const float nx = 1, ny = 0;
                     estimation.x = nx * c - ny * s;
                     estimation.y = nx * s + ny * c;
-
+                    
                     //TODO calculate some actual speed!
 
                     const auto accShake = latest.acc_shake_fator();
@@ -187,7 +191,17 @@ namespace walk_detector
                         std::cout << "High Freq Estimate detected\n";
                     else std::cout << '\n';
 
-                    static const float some_speed = 1.23;
+                    float some_speed = 1;
+                    
+                    const int max_th = 300;
+                    if(lsquared < max_th)
+                    {
+                        some_speed = map(lsquared, 15, max_th, 1, 3.5f);
+                    }
+                    else
+                    {
+                        some_speed = 3.5f;
+                    }
                     estimation *= some_speed;
 
                 }
@@ -205,7 +219,7 @@ namespace walk_detector
             analyser()
             {
                 initial = 0;
-                detectionThreshold =  60;
+                detectionThreshold =  15;
             }
 
             walk_speed_vector get_estimated_walk()

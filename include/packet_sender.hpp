@@ -30,7 +30,7 @@ class packet_sender
 
             //Give socket rights to boadcast on the network
             const int broadcast = 1;
-            setsockopt(s, SOL_SOCKET, SO_BROADCAST, (const void*)&broadcast, sizeof broadcast)
+            setsockopt(s, SOL_SOCKET, SO_BROADCAST, (const void*)&broadcast, sizeof broadcast);
 
             //Configure some server feilds
             memset((char*)&si_server, 0, sizeof(si_server));
