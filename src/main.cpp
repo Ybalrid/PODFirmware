@@ -44,14 +44,14 @@ void getNewRecordingSession(std::string& session)
     session.clear();
     for(int i = 0; i < 5; i++)
     {
-        session.push_back((char)(97 + (rand() % 26)));
+        session.push_back((char)( rand() % 2 ? 65 + (rand() % 26) : 48 + (rand() % 10) ));
     }
 }
 
 int main(int argc, char* argv[])
 {
     //Define the region on the screen to print the session identifier
-    SDL_Rect sessionRect = {0,0,20*5,20};
+    SDL_Rect sessionRect = {0,0,40*5,40};
     //Keep the recording state information in these variables
     RecordigState currentRecordingState = RecordigState::none;
     std::string currentRecordingSession = "NOREC";
@@ -182,9 +182,15 @@ int main(int argc, char* argv[])
                                                    samples.clear();
                                                    SessionText = TTF_RenderText_Solid(font, currentRecordingSession.c_str(), redColor);
                                                    SessionTexture = SDL_CreateTextureFromSurface(renderer, SessionText);
+                                               
+                                                   std::cout << "Started recording session " << currentRecordingSession << '\n';
+                                               break;
                                                }
+
+
                                                if(currentRecordingState == RecordigState::started)
                                                {
+                                                   std::cout << "Finished recording session " << currentRecordingSession << '\n';
                                                    currentRecordingState = RecordigState::finished;
                                                }
                                                break;
@@ -264,6 +270,7 @@ int main(int argc, char* argv[])
             currentRecordingSession = "NOREC";
             SessionText = TTF_RenderText_Solid(font, currentRecordingSession.c_str(), blackColor);
             SessionTexture = SDL_CreateTextureFromSurface(renderer, SessionText);
+            currentRecordingState = RecordigState::none;
         }
 
     }
