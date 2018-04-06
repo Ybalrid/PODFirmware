@@ -12,13 +12,15 @@
 #include <vector>
 #include <string>
 
+enum class RecordigState{none, started, finished};
+
 ///structure to contains the data outputed by the sensors
 /*struct sample
-{
-    long long time;
-    int x, y;
-    float accx, accy, accz;
-};*/
+  {
+  long long time;
+  int x, y;
+  float accx, accy, accz;
+  };*/
 
 using sample = walk_detector::raw_data;
 
@@ -28,20 +30,37 @@ std::ostream& operator<<(std::ostream& out, const sample& s)
 {
     out << s.time << ", " << s.x << ", " << s.y << ", "
         << std::setprecision(std::numeric_limits<float>::digits10+1)
-        << s.accx << ", " 
+        << s.accx << ", "
         << std::setprecision(std::numeric_limits<float>::digits10+1)
-        << s.accy << ", " 
+        << s.accy << ", "
         << std::setprecision(std::numeric_limits<float>::digits10+1)
         << s.accz;
     return out;
 }
 
+
+void getNewRecordingSession(std::string& session)
+{
+    session.clear();
+    for(int i = 0; i < 5; i++)
+    {
+        session.push_back((char)(97 + (rand() % 26)));
+    }
+}
+
 int main(int argc, char* argv[])
 {
+    //Define the region on the screen to print the session identifier
+    SDL_Rect sessionRect = {0,0,20*5,20};
+    //Keep the recording state information in these variables
+    RecordigState currentRecordingState = RecordigState::none;
+    std::string currentRecordingSession = "NOREC";
+
+
     //Template parameter is the time depth of the analyser (in samples)
     //22 samples is roughly 1/4th a second if sampling is done at 11 ms. (as it is more or less the case here)
     walk_detector::analyser<22*2> wd;
-    
+
     //Network config
     packet_sender network_sender;
     {
@@ -86,6 +105,9 @@ int main(int argc, char* argv[])
     auto Atexture = SDL_CreateTextureFromSurface(renderer, Asurface);
     sensorArray sensors;
 
+
+    auto SessionText = TTF_RenderText_Solid(font, currentRecordingSession.c_str(), blackColor);
+    auto SessionTexture = SDL_CreateTextureFromSurface(renderer, SessionText);
     auto last = std::chrono::system_clock::now();
     auto now = std::chrono::system_clock::now();
 
@@ -110,10 +132,10 @@ int main(int argc, char* argv[])
 
 
     auto start = std::chrono::system_clock::now();
-    
+
     filter<int, 6> xFilter, yFilter;
     filter<float, 3> xAccFilter, zAccFilter;
-    
+
     //Set to true the first time you hit spacebar
     bool calibrated = false;
     while(running)
@@ -121,7 +143,7 @@ int main(int argc, char* argv[])
         //Get data from the sensor array
         sensors.updateAll();
         //std::cout << sensors.getAccelerationReadout() << '\n';
-        
+
         //Calculate timing
         last = now;
         now = std::chrono::system_clock::now();
@@ -139,7 +161,7 @@ int main(int argc, char* argv[])
             {
                 //Window closed:
                 case SDL_QUIT: running = false; break;
-                //Any keypress
+                               //Any keypress
                 case SDL_KEYUP:
                                {
                                    switch(e.key.keysym.sym)
@@ -151,17 +173,32 @@ int main(int argc, char* argv[])
                                            calibrated = true;
                                            break;
                                        default:break;
+
+                                       case SDLK_RETURN:
+                                               if(currentRecordingState == RecordigState::none)
+                                               {
+                                                   currentRecordingState = RecordigState::started;
+                                                   getNewRecordingSession(currentRecordingSession);
+                                                   samples.clear();
+                                                   SessionText = TTF_RenderText_Solid(font, currentRecordingSession.c_str(), redColor);
+                                                   SessionTexture = SDL_CreateTextureFromSurface(renderer, SessionText);
+                                               }
+                                               if(currentRecordingState == RecordigState::started)
+                                               {
+                                                   currentRecordingState = RecordigState::finished;
+                                               }
+                                               break;
                                    }
                                }
                 default:break;
             }
         }
-        
-        
+
+
         //Render to the texture
         SDL_SetRenderTarget(renderer, screenTexture);
         SDL_RenderClear(renderer); //Clear
-        
+
         distance.x -= zero.x;
         distance.y -= zero.y;
         distance.x = xFilter(distance.x);
@@ -184,6 +221,7 @@ int main(int argc, char* argv[])
         //Draw stuff on the screen
         SDL_RenderCopy(renderer, Xtexture, nullptr, &destination);
         SDL_RenderCopy(renderer, Atexture, nullptr, &acceleration);
+        SDL_RenderCopy(renderer, SessionTexture, nullptr, &sessionRect);
         //Render the texture to the screen
         SDL_SetRenderTarget(renderer, nullptr);
         SDL_RenderCopy(renderer, screenTexture, nullptr, nullptr);
@@ -191,14 +229,14 @@ int main(int argc, char* argv[])
 
         //If the platform isn't calibrated, the measured data is useless
         if(!calibrated) continue;
-   
+
         //Construct a sample from raw_data
         sample s = {
-                (long long)std::chrono::duration_cast<std::chrono::nanoseconds>
+            (long long)std::chrono::duration_cast<std::chrono::nanoseconds>
                 (timepoint).count(),
-                distance.x,
-                distance.y,
-                acc.x, acc.y, acc.z};
+            distance.x,
+            distance.y,
+            acc.x, acc.y, acc.z};
 
         //Record it for latter analysis
         samples.push_back(s);
@@ -207,29 +245,30 @@ int main(int argc, char* argv[])
         wd.push_data(s);
         auto walk = wd.get_estimated_walk();
         network_sender.sendWalkVector(s.time, walk.x, walk.y);
-    }
 
-    //generate (bad) random filename
-    std::string filename;
-    for(int i = 0; i < 20; i++)
-    {
-        filename.push_back((char)(97 + (rand() % 26)));
-    }
-
-    filename += ".csv";
-
-    {
-        //output to file
-        auto file = std::ofstream(filename);
-
-        for(auto& s : samples)
+        if(currentRecordingState == RecordigState::finished)
         {
-            file << s;
-            file << '\n';
+            { //File handle lifetime
+                //output to file
+                auto file = std::ofstream("data_collect/" + currentRecordingSession + ".csv");
+
+                for(auto& s : samples)
+                {
+                    file << s;
+                    file << '\n';
+                }
+
+            } //end of file handle lifetime
+
+            samples.clear();
+            currentRecordingSession = "NOREC";
+            SessionText = TTF_RenderText_Solid(font, currentRecordingSession.c_str(), blackColor);
+            SessionTexture = SDL_CreateTextureFromSurface(renderer, SessionText);
         }
+
     }
 
-    TTF_CloseFont(font); 
+    TTF_CloseFont(font);
     SDL_DestroyWindow(window);
     SDL_DestroyTexture(screenTexture);
     SDL_DestroyRenderer(renderer);
